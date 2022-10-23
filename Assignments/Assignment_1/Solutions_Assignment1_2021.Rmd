@@ -1,0 +1,210 @@
+---
+title: "Data Programming with R"
+author: "Isabella Gollini - 12345679"
+date: "Solutions Assignment 1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+General comments:
+
+- Save the data file in the same folder as the `.Rmd` file, so that you don't have to specify the file path that is specific of the computer you are using (and other users would not be able to run your code without changing it).
+
+- There is no need to print the full dataset, it makes the document very hard to read. Showing the structure is sufficient.
+
+# Task 1: Manipulation
+
+## 1.1
+
+```{r}
+# Load the data
+crime2019 <- read.csv("EurostatCrime2019.csv", 
+  header = TRUE, # first row contains column names
+  row.names = 1) # first column contains country names
+```
+
+## 1.2 
+
+The size can be found in a few ways. One way is: 
+```{r}
+dim(crime2019)
+```
+or
+
+```{r}
+nrow(crime2019)
+ncol(crime2019)
+```
+
+This shows that there are `r dim(crime2019)[1]` rows and `r dim(crime2019)[2]` columns in the dataset. 
+
+To see how I wrote code which will include the correct number of rows for any dataset, instead of ‘hard-coding’ the numbers into my `.Rmd` file, have a look at the file to see how I included the number of rows and columns above.
+
+The structure of the dataset can be found by
+
+```{r}
+str(crime2019)
+```
+
+Dataframe with `r nrow(crime2019)` rows and `r ncol(crime2019)` columns.
+
+This shows that the object is a dataframe. It again repeats the number of rows and columns, and shows that all columns are numerical recordings of crime rates. Some NAs are visible too.
+
+## 1.3 
+
+### 1.3.(i)
+
+Now remove those four columns. You can call the dataframe something else here. I'm going to call it something shorter than the previous name:
+
+```{r}
+crime2 <- subset(crime2019,
+                 select = -c(Rape,
+                             Sexual.assault))
+```
+
+There are lots of ways to do the above operation, some of them easier than others. Let's check that it worked:
+
+```{r}
+str(crime2)
+```
+
+Good! Another way to do this is to set the columns you want to remove to `NULL`:
+
+```{r}
+crime2019$Rape <- NULL
+crime2019$Sexual.assault <- NULL
+```
+
+Checking its structure:
+```{r}
+str(crime2019)
+```
+
+Good! So that's two different ways. There are many others, e.g., using `[ , ]` notation to select the columns you want to keep.
+
+### 1.3.(ii)
+
+I can proceed removing the columns similarly to question 1.3.(i): 
+
+```{r}
+crime2019 <- subset(crime2019,
+                    select = -c(Theft,
+                                Theft.of.a.motorized.land.vehicle,
+                                Burglary,
+                                Burglary.of.private.residential.premises))
+str(crime2019)
+```
+
+### 1.3.(iii)
+
+```{r}
+crime2019$Total <- rowSums(crime2019, na.rm = FALSE)
+```
+
+Using `na.rm = FALSE` means that when I sum up the values, if one of them is `NA`, then the sum will be still `NA`.
+
+## 1.4
+
+Now we want to select only those countries which have complete records.
+
+```{r}
+checkNA <- crime2019[!complete.cases(crime2019), ]
+rownames(checkNA)
+```
+`complete.cases(crime2019)` returns a logical vector showing `TRUE` if all values in the row are available, and `FALSE` if at least one value is missing - `NA`. By using `!` before `complete.cases(crime2019)` I am checking when there are **no** `complete.cases`. So I essentially subset `crime2019` above and only select those rows with a `TRUE` value for `!complete.cases(crime2019)` (that is the same as selecting those rows with a `FALSE` value for `complete.cases(crime2019)`) - those which have missing data.
+
+Another way to answer the same question is by using the `apply` function:
+
+```{r}
+checkNA <- apply(crime2019, 1, function(x) any(is.na(x)))
+rownames(crime2019)[checkNA]
+```
+
+## 1.5
+
+Again, there are different ways to answer this question, for example:
+
+```{r}
+crime2 <- crime2019[checkNA != 1, ]
+str(crime2)
+```
+
+or by using `complete.cases`:
+
+```{r}
+crime2019 <- crime2019[complete.cases(crime2019), ]
+str(crime2019)
+```
+
+## 1.6
+
+```{r}
+dim(crime2019)
+```
+
+Dataframe with `r nrow(crime2019)` observations (rows) and `r ncol(crime2019)` variables (columns).
+
+
+# Task 2: Analysis
+
+## 2.1
+
+```{r}
+# select the row containing data for Ireland and remove the last column which contains the Total
+Ireland <- crime2019["Ireland", -ncol(crime2019)] 
+# sort the crimes in Ireland in decreasing order
+Ireland <- sort(Ireland, decreasing = TRUE) 
+# select the names of the top three crimes
+names(Ireland[1:3]) 
+```
+
+It can also be done in a single row of code:
+
+```{r}
+names(sort(crime2019["Ireland", -ncol(crime2019)], decreasing = TRUE)[1:3])
+```
+
+The 3 most common crimes in Ireland in 2019 were `r names(sort(crime2019["Ireland", -ncol(crime2019)], decreasing = TRUE)[1:3])`.
+
+Look at the Rmd file again to see how I wrote the line above, so that even if the data changes, and I re-run my script, it will still pick out the top 3 crimes, whatever they happen to be in this new dataset.
+
+## 2.2
+
+```{r}
+crime2019["Ireland",]$Assault / crime2019["Ireland",]$Total
+```
+
+
+## 2.3
+
+```{r}
+rownames(crime2019)[which.max(crime2019$Kidnapping)]
+```
+
+This shows that `r rownames(crime2019)[which.max(crime2019$Kidnapping)]` is the country with the highest record of kidnapping.
+
+## 2.4
+
+The country with the lowest record of offences was
+```{r}
+rownames(crime2019)[which.min(crime2019$Total)]
+```
+
+This shows that `r rownames(crime2019)[which.min(crime2019$Total)]` is the country with the highest overall record of offences.
+
+## 2.5 
+
+```{r}
+plot(crime2019$Robbery,
+     crime2019$Unlawful.acts.involving.controlled.drugs.or.precursors,
+     xlab = "Robbery",
+     ylab = "Unlawful acts involving controlled drugs or precursors",
+     pch = 19)
+```
+
+# Task 3: Creativity
+
+This task was up to you. But you must describe your findings, not just produce a plot etc., with no comment on it.

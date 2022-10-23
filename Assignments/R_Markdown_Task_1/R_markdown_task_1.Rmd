@@ -1,0 +1,37 @@
+---
+title: "R Markdown Task"
+author: "Henry Lewis 20202851"
+date: "20/09/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load the MASS Package
+
+```{r}
+library(MASS)
+
+```
+
+
+## The Shrimp Dataset
+
+``` {r}
+print(shrimp)
+
+```
+
+### Description
+A numeric vector with 18 determinations by different laboratories of the amount (percentage of the declared total weight) of shrimp in shrimp cocktail.
+
+
+## Plots
+
+```{r shrimp}
+plot(shrimp)
+```

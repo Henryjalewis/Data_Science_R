@@ -1,0 +1,370 @@
+---
+title: "Final_Project"
+author: "Henry Lewis"
+date: "18/12/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+The dataset chosen for this assignment is called Craft Beers dataset. 
+Description: This dataset contains a list of 2,410 US craft beers and 510 US breweries and its available at https://www.kaggle.com/nickhould/craft-cans
+
+```{r}
+# Import Libraries 
+library("dplyr")
+```
+
+# Part 1: Analysis
+
+## Beer Dataset
+```{r}
+# Read the beers csv to a variable beer with first row containing column names and removing white space
+beer <- read.csv("beers.csv", header = TRUE, strip.white=TRUE) 
+# set the column name to beer_id
+colnames(beer)[4] <- c("beer_id")
+# set the column name to beer_name
+colnames(beer)[5] <- c("beer_name")
+# Remove the index column
+beer_df <- beer[,-1]
+```
+
+## Breweries Dataset
+```{r}
+# Read the breweries csv to a variable breweries with first row containing column names and removing white space
+breweries <- read.csv("breweries.csv", header = TRUE, strip.white=TRUE)
+# set the column name to brewery_name
+colnames(breweries)[2] <- c("brewery_name")
+# set the column id to brewery_id
+colnames(breweries)[1] <- c("brewery_id")
+```
+
+## Merged dataset
+```{r}
+# merge the beer and breweries and remove the first column
+df <- merge(beer_df, breweries, by.x = "brewery_id")
+df <- df[,-1]
+head(df)
+```
+
+
+
+### Breweries Analysis
+```{r}
+breweries_df <- breweries[,-1]
+head(breweries_df)
+```
+The breweries dataframe contains `r nrow(breweries_df)` observations and `r ncol(breweries_df)` columns that include the brewery name, city location, and state within the United States where the brewery is located.
+
+```{r}
+# Structure of teh Breweries dataset
+str(breweries_df)
+
+```
+
+
+
+## Analyse the number of Breweries 
+
+
+```{r}
+#Number of breweries per state
+state_breweries <- table(breweries_df$state)
+state_breweries
+```
+
+
+```{r, echo=TRUE}
+max5_state_breweries <-head(sort(state_breweries,decreasing = TRUE),5)
+max5_state_breweries
+
+```
+
+
+```{r}
+colors = c("gray", "orange", "blue")
+barplot(max5_state_breweries, main = "Top 5 Number of Breweries by State", xlab ="US State", ylab = "Number of Breweries",
+col= colors, las = 1)
+```
+
+As can be seen Colorado `r names(max5_state_breweries[1])` has the largest quantity of breweries with `r max(state_breweries)`. Then comes California with `r max5_state_breweries[2]`, Michigan with `r max5_state_breweries[3]`, Oregon with `r max5_state_breweries[4]` and Texas with `r max5_state_breweries[5]`.
+
+```{r}
+colorado_brew <- breweries_df[which(breweries_df$state == "CO"),]
+colorado_breweries <- colorado_brew[1]
+nrow(colorado_breweries)
+
+```
+
+```{r}
+colorado_brew_cities <- colorado_brew[1:2]
+
+brewery_cities <- colorado_brew_cities %>%
+group_by(city) %>% summarize(n())
+
+brewery_cities <- as.data.frame(brewery_cities)
+colnames(brewery_cities)[1] <- c("city")
+colnames(brewery_cities)[2] <- c("brew_num")
+
+```
+
+```{r}
+library(ggplot2)
+ggplot(brewery_cities, aes(x=city, y=brew_num, size = brew_num)) + 
+    geom_point(color = "darkgreen")+ 
+  # angles the labels
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+ 
+  # truncates labels 
+  scale_x_discrete(label = function(x) stringr::str_trunc(x, 13)) + ggtitle("Number of Breweries in Colorado Cities") + 
+  # Adds a theme and adds a centered title
+  theme(plot.title = element_text(hjust = 0.5))+
+  # Adds detailed caption information alongside a theme
+  labs(caption = "Data source: kaggle",
+              x = "Cities in Colorodo", y = "Number of Breweries") + theme(
+                                            panel.background = element_rect(fill = "lightblue",
+                                                                          colour = "lightblue",
+                                                                          size = 0.5, linetype = "solid"),
+                                            panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                                                          colour = "white"), 
+                                            panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                                                          colour = "white")
+                                            )
+
+```
+
+## Analyse the Beers
+```{r}
+# first 5 lines of the beers dataset
+head(beer_df)
+```
+The total number of beers contained within the dataset is `r nrow(beer_df)`.  
+
+```{r}
+# function for calculating the number of N/A values
+beer_missing <- sapply(beer_df, function(x)sum(is.na(x)))
+
+```
+The total number of missing values contained within the ABV (Alcohol By Volume) column is `r beer_missing[1] ` representing `r beer_missing[1]/nrow(beer_df)*100`% of the dataset, whilst the number of missing values contained within IBU (International Bitterness Units) is `r beer_missing[2] ` representing `r beer_missing[2]/nrow(beer_df)*100` % of the dataset. The remaining columns have no missing values.
+
+```{r}
+beer_averages <- sapply(beer_df[1:2], function(x) mean(x, na.rm = TRUE))
+beer_averages
+```
+
+```{r}
+hist(beer_df$abv)
+```
+
+```{r}
+hist(beer_df$ibu)
+```
+
+```{r fig.height = 5, fig.width = 6, fig.align = "center"}
+# count the number of each beer type
+beer_type <- beer_df %>% 
+  count(style)
+
+df_bt <-beer_type[order(beer_type$n,decreasing = TRUE),]
+# get the top 5 beers
+top_5_beer_types <- head(df_bt,5)
+
+# Plot the 5 top beer types in the dataset
+
+ggplot(data = top_5_beer_types, aes(x=style, y=n)) + 
+    geom_bar(stat="identity")+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+ 
+  # truncates labels 
+  scale_x_discrete(label = function(x) stringr::str_trunc(x, 20)) + ggtitle("Top 5 Styles of Beer that Appear in Dataset") + 
+  # Adds a theme and adds a centered title
+  theme(plot.title = element_text(hjust = 0.5))+
+  # Adds detailed caption information alongside a theme
+  labs(x = "Top 5 Beer Styles in Dataset", y = "Number of Beers")
+```
+
+- The top beer present in the dataset is American IPA followed by America Pale Ale. The American IPA is almost twice as popular as the America pale ale. The other beers are represented in fewer quantities within the dataset than the top two beers.
+
+```{r}
+# Beer with the highest abv
+abv <- beer_df[order(beer_df$abv,decreasing = TRUE),]
+ibu <- beer_df[order(beer_df$ibu,decreasing = TRUE),]
+
+max_abv <- head(abv,1)
+min_abv <- tail(abv,1) 
+
+max_ibu <- head(ibu,1)
+min_ibu <- tail(ibu,1)
+max_ibu
+```
+- The beer with the highest ABV is `r max_abv['beer_name']` with an ABV of `r max(beer_df$abv,na.rm =   TRUE)*100` %, whilst the beer with the lowest ABI is `r min_abv['beer_name']` with an ABV of `r min(beer_df$abv,na.rm = TRUE)*100` %. 
+- The beer with the highest IBU is `r max_ibu['beer_name']` with an ABI of `r max(beer_df$ibu,na.rm = TRUE)`, whilst the beer with the lowest ABI is `r min_ibu['beer_name']` with an ABI of `r min(beer_df$ibu,na.rm = TRUE)`.
+
+
+```{r}
+# graph of ABV vs IBU
+x <- beer_df$abv
+y <- beer_df$ibu
+ggplot(data = beer_df, aes(x=ibu, y=abv)) + 
+    geom_point( color="#69b3a2")+
+  geom_smooth(method=lm , color="red", se=FALSE) 
+  
+```
+
+# Part 2: R Package
+
+As part of this section, I have chosen to explore the equisse package. This is an R package that facilitates data manipulation for exploratory data analysis. It is one of the core packages of the tidyverse. The main goal of this package is to make it easier to manipulate data and allows the operators to easily extract, rearrange and manipulate to provide insights into the datasets in a user friendly way. The package also allows the use of pipes that allow the output of one command to become the input of another command.  As part of this analysis, the previous datasets will utilized as well as the combined dataset of beers and breweries. 
+
+```{r}
+library(esquisse)
+```
+
+```{r}
+# getting the highest 5 average abv 
+highest_avg_abv <- beer_df %>% 
+                  group_by(style) %>% 
+                  summarize(Mean = mean(abv, na.rm=TRUE))
+highest_average_abv <- highest_avg_abv[order(highest_avg_abv$Mean,decreasing = TRUE),]
+high_5_abv <- head(highest_average_abv,5)
+```
+
+```{r}
+#install.packages("DataExplorer")
+#create_report(high_5_abv)
+```
+
+
+```{r}
+# getting the highest 5 average ibu
+highest_avg_ibu <- beer_df %>% 
+                  group_by(style) %>% 
+                  summarize(Mean = mean(ibu, na.rm=TRUE))
+highest_average_ibu <- highest_avg_ibu[order(highest_avg_ibu$Mean,decreasing = TRUE),]
+head(highest_average_ibu,5)
+```
+
+```{r}
+# getting the lowest 5 average ibu
+min_ibu <- beer_df %>% 
+                  group_by(style) %>% 
+                  summarize(Mean = mean(ibu, na.rm=TRUE))
+
+mimimum_ibu <- min_ibu[order(min_ibu$Mean,decreasing = FALSE),]
+head(mimimum_ibu,5)
+```
+
+```{r}
+# getting the state with the highest 10 average ibu
+avg_state_ibu <- df %>% 
+                group_by(state)%>%
+                summarize(Mean = mean(ibu, na.rm=TRUE))
+average_state_ibu <- avg_state_ibu[order(avg_state_ibu$Mean,decreasing = TRUE),]
+average_state_ibu <- head(average_state_ibu,10)
+
+
+# Plot the states with the highest 10 average ibu in the dataset
+
+ggplot(data = average_state_ibu, aes(x=state, y=Mean, fill=Mean)) + 
+    geom_bar(stat="identity", color="black", position=position_dodge())+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  # truncates labels 
+  scale_x_discrete(label = function(x) stringr::str_trunc(x, 20)) + ggtitle("States with highest in Dataset") + 
+  # Adds a theme and adds a centered title
+  theme(plot.title = element_text(hjust = 0.5))+
+  # Adds detailed caption information alongside a theme
+  labs(x = "States with ", y = "Number of Beers")
+```
+
+
+```{r}
+# Getting the cities with the highest 10 average ibu
+avg_city_ibu <- df %>% 
+                group_by(city)%>%
+                summarize(Mean_IBU= mean(ibu, na.rm=TRUE))
+average_city_ibu <- avg_city_ibu[order(avg_city_ibu$Mean_IBU,decreasing = TRUE),]
+average_cities_ibu <- head(average_city_ibu,10)
+
+# Plotting the cities with the highest 10 average ibu
+ggplot(data = average_cities_ibu, aes(x=city, y=Mean_IBU, fill=Mean_IBU)) + 
+    geom_bar(stat="identity", color="black", position=position_dodge())+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+
+  # truncates labels 
+  scale_x_discrete(label = function(x) stringr::str_trunc(x, 20)) + ggtitle("Cities with highest IBU") + 
+  # Adds a theme and adds a centered title
+  theme(plot.title = element_text(hjust = 0.5))+
+  # Adds detailed caption information alongside a theme
+  labs(x = "Cities", y = "Mean IBU")
+```
+
+# Part 3: Functions/Programming
+The third part of the  assignment 
+
+```{r}
+stateAnalysis <- function(state){
+  
+  # Creating a 
+  StateParameters <- list(name=state, 
+              beer_mean_ibu_state = mean(df[,"ibu"][df$state == state],na.rm=TRUE ),
+              beer_mean_abv_state = mean(df[,"abv"][df$state == state], na.rm=TRUE),
+              beer_max_ibu_state = max(df[,"ibu"][df$state == state],na.rm=TRUE ),
+              beer_max_abv_state = max(df[,"abv"][df$state == state],na.rm=TRUE ),
+              beer_min_ibu_state = min(df[,"ibu"][df$state == state],na.rm=TRUE ),
+              beer_min_abv_state = min(df[,"abv"][df$state == state], na.rm=TRUE)
+              )
+  class(StateParameters) <- "state"
+  return(StateParameters)
+}
+stateAnalysis("CO")
+```
+
+
+
+```{r}
+summary.Region <- function(obj){ 
+  cat("The mean values of region", obj$name, "are as follows:\n")
+  cat("Mean Beer per capita: ", obj$beer_mean, "|", "stdev: ", obj$beer_sd, "\n")
+  cat("Mean Wine per capita:", obj$wine_mean, "|", "stdev: ", obj$wine_sd, "\n")
+  cat("Mean Spirit per capita:", obj$spirit_mean, "|", "stdev: ", obj$spirit_sd,  "\n")
+
+}
+```
+
+```{r}
+cityAnalysis <- function(city){
+  
+  # Creating a 
+  CityParameters <- list(name=city, 
+              beer_mean_ibu_city = mean(df[,"ibu"][df$city == city],na.rm=TRUE),
+              beer_mean_abv_city = mean(df[,"abv"][df$city == city], na.rm=TRUE),
+              beer_max_ibu_city = max(df[,"ibu"][df$city == city],na.rm=TRUE ),
+              beer_max_abv_city = max(df[,"abv"][df$city == city],na.rm=TRUE ),
+              beer_min_ibu_city = min(df[,"ibu"][df$city == city],na.rm=TRUE ),
+              beer_min_abv_city = min(df[,"abv"][df$city == city], na.rm=TRUE)
+              )
+  class(CityParameters) <- "city"
+  return(CityParameters)
+}
+
+cityAnalysis("Louisville")
+```
+
+
+```{r}
+BeerAnalysis <- function(style){
+  
+  # Creating a 
+  BeerParameters <- list(name=style, 
+              mean_ibu_for_beer_style = mean(df[,"ibu"][df$style == style],na.rm=TRUE),
+              mean_abv_style_for_beer_style = mean(df[,"abv"][df$style == style],na.rm=TRUE)
+              
+              )
+  class(BeerParameters) <- "beer"
+  return(BeerParameters)
+}
+
+BeerAnalysis("American Pale Lager")
+```
+

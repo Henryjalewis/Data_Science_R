@@ -1,0 +1,199 @@
+---
+title: "Assignment_1"
+author: "Henry Lewis 20202851"
+date: "30/09/2021"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task 1: Manipulation
+
+#### Task 1.1: Load the dataset EurostatCrime2019.csv. Notice that the first column of the csv file contains the names of the countries that must be read as row names
+
+```{r}
+data <- read.csv("EurostatCrime2019.csv") # reads the csv to a variable data
+head(data,3)
+```
+
+#### Task 1.2: What is the size (number of rows and columns) and the structure of this dataset?
+```{r}
+cols <- ncol(data) # number of columns
+rows <- nrow(data) # number of rows
+cat("The number of columns are:", cols, "whilst the number of rows are", rows)
+
+```
+
+```{r structure}
+str(data)
+
+```
+
+#### Task 1.3: Produce appropriate commands to do the following actions.
+#### part (i): Remove the columns Rape and Sexual.assault.
+```{r}
+# Use subset on dataframe and remove the specified columns of rape and sexual assault with select parameter and -c for removal
+data <- subset (data, select = -c(Rape,Sexual.assault))
+colnames(data)
+```
+#### part (ii): Remove the columns involving theft and burglary.
+```{r}
+# Use subset on dataframe and remove the specified columns elect parameter and -c for removal
+data <- subset (data, select = -c(Theft,Theft.of.a.motorized.land.vehicle,Burglary,Burglary.of.private.residential.premises)) 
+
+# Take the columns names to ensure removal has taken place
+colnames(data)
+```
+
+#### part (iii): Add a column containing the overall record of offences for each country (per hundred thousand inhabitants)?
+
+```{r}
+# Create a column Overall_offences and populate it with the sum across each row, ignoring the NA values 
+data$Overall_offences <- apply(data[,-1], 1, sum, na.rm=TRUE)
+
+# Change the column names of the data frame to those specified
+names(data) <- c('Country','Murder', 'Attempted_Murder', 'Assault', 'Kidnapping' ,'Sexual_Violance', 'Robbery','Drugs', 'Overall_offences')
+
+# Take the top 3 rows
+head(data,3)
+```
+
+#### Task 1.4: Work with the dataset you just created, and list the countries that contain any missing data.
+
+```{r}
+# Take the rows where countries have NA in rows
+list_countries_na <- data[!complete.cases(data),]
+
+# Take the country column (1st column)
+list_countries_na[,1]
+
+```
+
+#### Task 1.5: Remove the countries with missing data from the dataframe.
+```{r}
+# Removes the countries with missing data
+df <- data[complete.cases(data),]
+
+# Gets top 3 rows
+head(df,3)
+```
+#### Task 1.6: How many observations and variables are in this new dataframe?.
+
+```{r}
+# Gets the rows and columns
+observations <- ncol(df)
+observations 
+variables<- nrow(df)
+variables
+```
+## Task 2: Manipulation
+#### Task 2.1: According to these data what were the 3 most common crimes in Ireland in 2019?
+
+```{r}
+# Gets the row with Ireland and the selected columns
+new_row <- subset(df, Country == "Ireland", select=Murder:Drugs)
+str(new_row)
+# sort the rows 
+sort_row <- apply(new_row , 1, sort, decreasing = TRUE)
+
+# Take the top 3 rows
+most_common_crimes <- head(sort_row,3)
+most_common_crimes
+```
+
+#### Task 2.2: What proportion of the overall crimes was due to Assault in Ireland in 2019?
+```{r}
+# Gets the assault data for Ireland
+assault <- subset(df, Country == "Ireland", select=Assault)
+
+# Calculate the proportion of assault as a percentage of overall crimes
+assault_proportion <- (assault/subset(df, Country == "Ireland", select=Overall_offences))*100
+assault_proportion
+```
+
+#### Task 2.3: Which country had the highest record of kidnapping in 2019 (per hundred thousand inhabitants)?
+```{r}
+# Generate a dataframe of country and kidnapping columns
+k <- subset(df, select=c("Country", "Kidnapping"))
+
+# Order based on kidnapping values
+country <- k[order(-k$Kidnapping),]
+
+# select the top country
+country_kidnapping <- country$Country[1] 
+country_kidnapping
+```
+#### Task 2.4: Which country had the lowest overall record of offences in 2019 (per hundred thousand inhabitants)?
+```{r}
+# Generate a dataframe of country and overall offences columns
+overall_offence_country <- subset(df, select=c("Country", "Overall_offences"))
+
+# Order the dataframe on overall offences
+overall_offence_country_sort <- overall_offence_country[order(overall_offence_country$Overall_offences),]
+
+# Take top country
+overall_offences_low <- overall_offence_country_sort$Country[1] 
+overall_offences_low
+```
+
+#### Task 2.5: Create a plot displaying the relationship between robbery and unlawful acts involving controlled drugs or precursors.
+
+
+```{r robbery,  fig.height = 5, fig.width = 7, fig.align = "center", echo=TRUE}
+# Plotting information
+x <-df$Robbery
+y <- df$Drugs
+
+par(mfcol = c(1,1))
+# Setting the plot and axes information
+plot(x,y,
+xlab = "Robbery (per 100,000 population size)", ylab = "Drugs Offences (per 100,000 population size)")
+title("Relationship between Robbery and Crime involving Controlled Drugs")
+axis(1, at = pretty(x, n = 10))
+axis(2, at = pretty(y, n = 10))
+points(x, y, col = "blue", pch = 20)
+grid()
+```
+
+
+
+## Task 3: Creativity
+#### Do something interesting with these data
+
+The plot below details the levels of sexual violence on a per country basis. From the graph is it clear that both Finland and Ireland have the highest levels of sexual violence at greater than 60 offences (per 100,000), whilst Austria, Germany and Luxembourg have similar rates of approximately 50 offences (per 100,000). Countries such as Spain and Switzerland are slightly higher than the average, with Malta just above average.
+
+```{r creativity, fig.height = 5, fig.width = 7, fig.align = "center", echo=TRUE}
+library(ggplot2)
+library(stringr)
+theme_set(theme_classic())
+
+ggplot(df, aes(x = Country, y = Sexual_Violance))+ 
+  geom_point(color = "darkgreen")+ 
+  # angles the labels
+  theme(axis.text.x = element_text(angle = 45, hjust=1))+ 
+  # adds intercept for average per country 
+  geom_hline(aes(yintercept = mean(Sexual_Violance)), color="blue") + 
+  # truncates labels 
+  scale_x_discrete(label = function(x) stringr::str_trunc(x, 13)) + ggtitle("Sexual Violance per Country") + 
+  # Adds a theme and adds a centered title
+  theme(plot.title = element_text(hjust = 0.5))+
+  # Adds detailed caption information alongside a theme
+  labs(caption = "Data source: Eurostat",
+              x = "Country", y = "Sexual Violance (per 100,000 population size)") + theme(
+                                            panel.background = element_rect(fill = "lightblue",
+                                                                          colour = "lightblue",
+                                                                          size = 0.5, linetype = "solid"),
+                                            panel.grid.major = element_line(size = 0.5, linetype = 'solid',
+                                                                          colour = "white"), 
+                                            panel.grid.minor = element_line(size = 0.25, linetype = 'solid',
+                                                                          colour = "white")
+                                            )
+```
+
+
+
