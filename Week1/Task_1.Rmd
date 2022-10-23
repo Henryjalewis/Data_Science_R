@@ -1,0 +1,19 @@
+---
+title: "MyFirstMarkdownDocument"
+author: "Henry Lewis"
+date: "15/09/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The result of `Nile` is `r Nile`
+
+```{r}
+plot(Nile)
+summary(Nile)
+```
